@@ -1,2 +1,0 @@
-# icmplib для асинхронного ping
-icmplib>=4.0.0
