@@ -122,31 +122,39 @@ class Target:
     def get_rtt_graph(self) -> str:
         """Построить ASCII-график последних RTT."""
         if not self.rtt_history:
-            return ""
+            return "?"
         
         values = self.rtt_history[-10:]  # Берём последние 10
         max_val = max(values) if values else 1
         
-        # Простые символы для графика: . . . : : | | | | | (чем выше RTT, тем "жирнее" символ)
-        # 0-10%: . (точка) | 10-30%: o (кружок) | 30-50%: + (плюс) | 50-70%: * (звёздочка) | 70-100%: # (решётка)
+        # Символы по степени тревожности
+        # ? – нет данных / ошибка
+        # ✓ – отлично (<10%)
+        # ∘ – хорошо (10–30%)
+        # ◌ – терпимо (30–50%)
+        # ⚠ – высоко (50–70%)
+        # ❗ – очень высоко (70–90%)
+        # ✖ – критический (>90%)
         graph_chars = []
         for val in values:
             if val <= 0:
-                graph_chars.append(" ")
+                graph_chars.append("?")
             else:
                 ratio = val / max_val
                 if ratio < 0.1:
-                    graph_chars.append(".")
+                    graph_chars.append("✓")
                 elif ratio < 0.3:
-                    graph_chars.append("o")
+                    graph_chars.append("∘")
                 elif ratio < 0.5:
-                    graph_chars.append("+")
+                    graph_chars.append("◌")
                 elif ratio < 0.7:
-                    graph_chars.append("*")
+                    graph_chars.append("⚠")
+                elif ratio < 0.9:
+                    graph_chars.append("❗")
                 else:
-                    graph_chars.append("#")
+                    graph_chars.append("✖")
         
-        return " ".join(graph_chars) if graph_chars else "-"
+        return " ".join(graph_chars) if graph_chars else "?"
     
     def log_event(self, status: Status, rtt: Optional[float] = None, error: str = None, logfile: str = None, only_down: bool = False) -> None:
         """Записать событие в лог-файл."""
@@ -331,7 +339,7 @@ class Dashboard:
             else:
                 self.stdscr.addstr(row, 0, line[:width-1].ljust(width-1), color)
     
-    def _draw_status(self, width: int, height: int) -> None:
+    def _draw_status(self, width: int, height: int, ping_interval: float) -> None:
         """Нарисовать строку состояния."""
         try:
             elapsed = time.time() - self.start_time
@@ -344,7 +352,7 @@ class Dashboard:
             status_send = "PAUSED" if self.paused else "SENDING"
             status_color = __import__("curses").color_pair(2) if self.paused else __import__("curses").color_pair(4)
             
-            status_line = f"[{status_send}] | Targets: {targets_count} | Uptime: {uptime} | Updates/s: {update_rate:.1f}"
+            status_line = f"[{status_send}] | Targets: {targets_count} | Uptime: {uptime} | Updates/s: {update_rate:.1f} | Ping: {ping_interval}s"
             status_line += " | q/Ctrl+X:quit | r:reload | p:pause | ^↑/↓:navigate"
             
             self.stdscr.addstr(height - 1, 0, status_line[:width-1].ljust(width-1),
@@ -352,7 +360,7 @@ class Dashboard:
         except __import__("curses").error:
             pass
     
-    def draw(self) -> None:
+    def draw(self, ping_interval: float) -> None:
         """Отрисовать весь дашборд."""
         try:
             height, width = self.stdscr.getmaxyx()
@@ -368,7 +376,7 @@ class Dashboard:
             
             self._draw_header(width)
             self._draw_targets(width, height)
-            self._draw_status(width, height)
+            self._draw_status(width, height, ping_interval)
             
             self.stdscr.refresh()
             self.last_update = time.time()
@@ -458,7 +466,7 @@ async def main_loop(dashboard: Dashboard, ping_manager: PingManager,
                     last_ping_time = current_time
             
             # Рисуем дашборд
-            dashboard.draw()
+            dashboard.draw(ping_interval)
             
             # Ждём перед следующим обновлением
             await asyncio.sleep(refresh_interval)
