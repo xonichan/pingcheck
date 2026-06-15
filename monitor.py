@@ -125,13 +125,24 @@ class Target:
         values = self.rtt_history[-10:]  # Берём последние 10
         max_val = max(values) if values else 1
         
-        # Строим график из символов
+        # Простые символы для графика: . . . : : | | | | | (чем выше RTT, тем "жирнее" символ)
+        # 0-10%: . (точка) | 10-30%: o (кружок) | 30-50%: + (плюс) | 50-70%: * (звёздочка) | 70-100%: # (решётка)
         graph_chars = []
         for val in values:
-            # Количество блоков (макс 8)
-            blocks = int((val / max_val) * 8) if max_val > 0 else 0
-            blocks = max(1, blocks) if val > 0 else 0  # Минимум 1 блок для RTT > 0
-            graph_chars.append("█" * blocks)
+            if val <= 0:
+                graph_chars.append(" ")
+            else:
+                ratio = val / max_val
+                if ratio < 0.1:
+                    graph_chars.append(".")
+                elif ratio < 0.3:
+                    graph_chars.append("o")
+                elif ratio < 0.5:
+                    graph_chars.append("+")
+                elif ratio < 0.7:
+                    graph_chars.append("*")
+                else:
+                    graph_chars.append("#")
         
         return " ".join(graph_chars) if graph_chars else "-"
     
