@@ -106,6 +106,8 @@ class Target:
     
     def get_avg_rtt_display(self) -> str:
         """Отобразить средний RTT (последние 10)."""
+        if len(self.rtt_history) < 10:
+            return "---"
         if self.avg_rtt is None:
             return "-"
         return f"{self.avg_rtt:.1f}"
