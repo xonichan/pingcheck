@@ -117,6 +117,24 @@ class Target:
         avg = self.total_rtt_sum / self.rtt_count
         return f"{avg:.1f}/{self.min_rtt:.1f}/{self.max_rtt:.1f}"
     
+    def get_rtt_graph(self) -> str:
+        """Построить ASCII-график последних RTT."""
+        if not self.rtt_history:
+            return ""
+        
+        values = self.rtt_history[-10:]  # Берём последние 10
+        max_val = max(values) if values else 1
+        
+        # Строим график из символов
+        graph_chars = []
+        for val in values:
+            # Количество блоков (макс 8)
+            blocks = int((val / max_val) * 8) if max_val > 0 else 0
+            blocks = max(1, blocks) if val > 0 else 0  # Минимум 1 блок для RTT > 0
+            graph_chars.append("█" * blocks)
+        
+        return " ".join(graph_chars) if graph_chars else "-"
+    
     def log_event(self, status: Status, rtt: Optional[float] = None, error: str = None, logfile: str = None, only_down: bool = False) -> None:
         """Записать событие в лог-файл."""
         if not logfile:
@@ -255,8 +273,8 @@ class Dashboard:
     def _draw_header(self, width: int) -> None:
         """Нарисовать заголовок таблицы."""
         try:
-            # Три столбца RTT: средний, последний и статистика за всё время
-            header = f"{'IP Address':<20} {'Status':<8} {'RTT avg (ms)':<14} {'RTT last (ms)':<14} {'All-time':<14} {'Loss %':<10} {'S/F':<8}"
+            # Три столбца RTT: средний, последний и статистика за всё время + график
+            header = f"{'IP Address':<20} {'Status':<8} {'RTT avg (ms)':<14} {'RTT last (ms)':<14} {'All-time':<14} {'Loss %':<10} {'Graph':<25}"
             self.stdscr.addstr(1, 0, header[:width-1].ljust(width-1), 
                              __import__("curses").color_pair(4) | __import__("curses").A_BOLD)
         except __import__("curses").error:
@@ -288,10 +306,10 @@ class Dashboard:
             # Loss %
             loss_text = f"{target.loss_percentage:.1f}%"
             
-            # Success/Failed
-            sf_text = f"{target.success_count}/{target.loss_count}"
+            # ASCII-график RTT
+            graph_text = target.get_rtt_graph()
             
-            line = f"{target.ip:<20} {status_text:<8} {avg_rtt_text:<14} {last_rtt_text:<14} {all_time_text:<14} {loss_text:<10} {sf_text:<8}"
+            line = f"{target.ip:<20} {status_text:<8} {avg_rtt_text:<14} {last_rtt_text:<14} {all_time_text:<14} {loss_text:<10} {graph_text:<25}"
             
             color = self._get_color_for_target(target)
             if i == self.selected_index:
