@@ -8,6 +8,7 @@ Ping Monitor - инструмент мониторинга доступност�
 Управление:
     q / Ctrl+C - выход
     r - перечитать файл с целями
+    p - пауза/запуск
     ↑ / ↓ - навигация по списку
 """
 
@@ -115,6 +116,30 @@ class Target:
             return "-"
         avg = self.total_rtt_sum / self.rtt_count
         return f"{avg:.1f}/{self.min_rtt:.1f}/{self.max_rtt:.1f}"
+    
+    def log_event(self, status: Status, rtt: Optional[float] = None, error: str = None, logfile: str = None, only_down: bool = False) -> None:
+        """Записать событие в лог-файл."""
+        if not logfile:
+            return
+        
+        # Если only_down=True и событие UP, не логируем
+        if only_down and status == Status.UP:
+            return
+        
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        
+        if error:
+            log_line = f"{timestamp} {self.ip} ERROR: {error}\n"
+        elif status == Status.UP:
+            log_line = f"{timestamp} {self.ip} UP RTT={rtt:.1f}ms\n"
+        else:
+            log_line = f"{timestamp} {self.ip} DOWN\n"
+        
+        try:
+            with open(logfile, "a", encoding="utf-8") as f:
+                f.write(log_line)
+        except Exception:
+            pass
 
 
 class PingManager:
@@ -124,7 +149,7 @@ class PingManager:
         self.targets = targets
         self._ping_process = None
     
-    async def ping_target(self, target: Target) -> None:
+    async def ping_target(self, target: Target, logfile: str = None, only_down: bool = False) -> None:
         """Выполнить пинг одной цели."""
         try:
             # icmplib: ping с 1 пакетом, timeout 1 секунда
@@ -138,36 +163,45 @@ class PingManager:
                 # result.avg_rtt возвращает среднее RTT
                 rtt = result.avg_rtt or result.min_rtt or 1.0
                 target.update(rtt, True)
+                # Логирование успешного пинга
+                target.log_event(Status.UP, rtt, logfile=logfile, only_down=only_down)
             else:
                 # Пинг не удался
                 target.update(None, False)
+                # Логирование неудачного пинга
+                target.log_event(Status.DOWN, logfile=logfile, only_down=only_down)
                 
         except (asyncio.CancelledError, KeyboardInterrupt):
             raise
-        except ICMPLibError:
+        except ICMPLibError as e:
             # Ошибка icmplib считается потерей
             target.update(None, False)
-        except Exception:
+            target.log_event(Status.DOWN, error=str(e), logfile=logfile, only_down=only_down)
+        except Exception as e:
             # Любая другая ошибка считается потерей
             target.update(None, False)
+            target.log_event(Status.DOWN, error=str(e), logfile=logfile, only_down=only_down)
     
-    async def ping_all(self) -> None:
+    async def ping_all(self, logfile: str = None, only_down: bool = False) -> None:
         """Пинговать все цели параллельно."""
         if not self.targets:
             return
-        await asyncio.gather(*[self.ping_target(t) for t in self.targets], return_exceptions=True)
+        await asyncio.gather(*[self.ping_target(t, logfile, only_down) for t in self.targets], return_exceptions=True)
 
 
 class Dashboard:
     """TUI-интерфейс для отображения целей."""
     
-    def __init__(self, targets: List[Target]):
+    def __init__(self, targets: List[Target], logfile: str = None, only_down: bool = False):
         self.targets = targets
         self.selected_index = 0
         self.start_time = time.time()
         self.last_update = time.time()
         self.update_count = 0
         self.paused = False  # Флаг паузы
+        self.logfile = logfile  # Путь к лог-файлу
+        self.only_down = only_down  # Логировать только DOWN
+        self.log_file_handle = None  # Открытый файл для лога
         self._setup_curses()
     
     def _setup_curses(self) -> None:
@@ -180,6 +214,13 @@ class Dashboard:
         __import__("curses").curs_set(0)
         self.stdscr.nodelay(True)
         self.stdscr.keypad(True)
+        
+        # Открыть лог-файл если указан
+        if self.logfile:
+            try:
+                self.log_file_handle = open(self.logfile, "a", encoding="utf-8")
+            except Exception as e:
+                print(f"Ошибка открытия лог-файла: {e}")
         
         # Инициализация цветов
         if __import__("curses").has_colors():
@@ -310,6 +351,9 @@ class Dashboard:
         """Восстановить терминал."""
         try:
             __import__("curses").endwin()
+            # Закрыть лог-файл
+            if self.log_file_handle:
+                self.log_file_handle.close()
         except Exception:
             pass
 
@@ -333,7 +377,7 @@ def load_targets(filepath: str) -> List[str]:
 
 
 async def main_loop(dashboard: Dashboard, ping_manager: PingManager, 
-                   file_path: str, reload_event: asyncio.Event, ping_interval: float) -> None:
+                   file_path: str, reload_event: asyncio.Event, ping_interval: float, logfile: str = None, only_down: bool = False) -> None:
     """Основной цикл программы."""
     targets_list = ping_manager.targets
     last_ping_time = 0
@@ -379,7 +423,7 @@ async def main_loop(dashboard: Dashboard, ping_manager: PingManager,
             if not dashboard.paused:
                 current_time = time.time()
                 if current_time - last_ping_time >= ping_interval:
-                    await ping_manager.ping_all()
+                    await ping_manager.ping_all(logfile, only_down)
                     last_ping_time = current_time
             
             # Рисуем дашборд
@@ -412,6 +456,16 @@ def main() -> None:
         metavar="[1-1000]",
         help="Интервал между пингами в секундах (по умолчанию: 1, максимум: 1000)"
     )
+    parser.add_argument(
+        "--logfile", "-l",
+        default=None,
+        help="Путь к файлу лога (по умолчанию: нет логирования)"
+    )
+    parser.add_argument(
+        "--only-down", "-d",
+        action="store_true",
+        help="Логировать только события DOWN (без RTT)"
+    )
     
     args = parser.parse_args()
     
@@ -425,11 +479,11 @@ def main() -> None:
     
     # Инициализация
     ping_manager = PingManager(targets)
-    dashboard = Dashboard(targets)
+    dashboard = Dashboard(targets, args.logfile, args.only_down)
     
     try:
         # Запуск основного цикла
-        asyncio.run(main_loop(dashboard, ping_manager, args.targets, asyncio.Event(), args.interval))
+        asyncio.run(main_loop(dashboard, ping_manager, args.targets, asyncio.Event(), args.interval, args.logfile, args.only_down))
     finally:
         dashboard.cleanup()
 

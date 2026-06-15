@@ -1,4 +1,4 @@
-# Ping Monitor с использованием icmplib
+# Pingcheck с использованием icmplib
 
 ## Установка зависимостей
 
@@ -28,6 +28,8 @@ python monitor.py --targets ./hosts.txt
 |----------|----------|
 | `--targets`, `-t` | Путь к файлу со списком целей |
 | `--interval`, `-i` | Интервал между пингами (1-1000 секунд, по умолчанию: 1) |
+| `--logfile`, `-l` | Путь к файлу лога (например: `logs.txt`) |
+| `--only-down`, `-d` | Логировать только события DOWN |
 
 ### Примеры
 
@@ -78,11 +80,20 @@ github.com
 # Запуск с файлом по умолчанию
 python monitor.py
 
+# Логирование только событий DOWN
+python monitor.py -l logs.txt -d
+
+# Логирование только событий DOWN с интервалом 10 секунд
+python monitor.py --interval 10 --logfile logs.txt --only-down
+
+# Запуск с файлом по умолчанию и логированием
+python monitor.py -l logs.txt
+
 # Запуск с указанным файлом
 python monitor.py --targets ./my-hosts.txt
 
-# Запуск с интервалом 5 секунд
-python monitor.py --interval 5
+# Запуск с интервалом 5 секунд и логированием
+python monitor.py --interval 5 --logfile ping_log.txt
 
 # Запуск с интервалом 30 секунд
 python monitor.py -t ./hosts.txt -i 30
