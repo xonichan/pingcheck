@@ -129,27 +129,27 @@ class Target:
         
         # Символы по степени тревожности
         # ? – нет данных / ошибка
-        # ✓ – отлично (<10%)
-        # ∘ – хорошо (10–30%)
-        # ◌ – терпимо (30–50%)
-        # ⚠ – высоко (50–70%)
-        # ❗ – очень высоко (70–90%)
-        # ✖ – критический (>90%)
+        # ✓ – отлично (<20%)
+        # ∘ – хорошо (20–50%)
+        # ◌ – терпимо (50–70%)
+        # ⚠ – высоко (70–90%)
+        # ❗ – очень высоко (90–95%)
+        # ✖ – критический (>95%)
         graph_chars = []
         for val in values:
             if val <= 0:
                 graph_chars.append("?")
             else:
                 ratio = val / max_val
-                if ratio < 0.1:
+                if ratio < 0.2:
                     graph_chars.append("✓")
-                elif ratio < 0.3:
-                    graph_chars.append("∘")
                 elif ratio < 0.5:
-                    graph_chars.append("◌")
+                    graph_chars.append("∘")
                 elif ratio < 0.7:
-                    graph_chars.append("⚠")
+                    graph_chars.append("◌")
                 elif ratio < 0.9:
+                    graph_chars.append("⚠")
+                elif ratio < 0.95:
                     graph_chars.append("❗")
                 else:
                     graph_chars.append("✖")
