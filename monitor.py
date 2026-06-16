@@ -456,6 +456,30 @@ async def main_loop(dashboard: Dashboard, ping_manager: PingManager,
                     dashboard.selected_index += 1
             elif key == curses.KEY_RESIZE:
                 dashboard._resize()
+            elif key == 13:  # Enter key
+                # Копировать выбранную строку в буфер обмена
+                if targets_list and dashboard.selected_index >= 0:
+                    selected_target = targets_list[dashboard.selected_index]
+                    line = f"{selected_target.ip} | Status: {selected_target.status.value.upper()} | RTT avg: {selected_target.get_avg_rtt_display()}ms | Loss: {selected_target.loss_percentage:.1f}% | Graph: {selected_target.get_rtt_graph()}"
+                    try:
+                        import subprocess
+                        if sys.platform.startswith('win'):
+                            # Windows: используем clip.exe
+                            subprocess.run(['clip'], input=line, text=True, check=True)
+                        elif sys.platform.startswith('darwin'):
+                            # macOS: используем pbcopy
+                            subprocess.run(['pbcopy'], input=line, text=True, check=True)
+                        else:
+                            # Linux: используем xclip или xsel
+                            try:
+                                subprocess.run(['xclip', '-selection', 'clipboard'], input=line.encode(), check=True)
+                            except (FileNotFoundError, subprocess.CalledProcessError):
+                                try:
+                                    subprocess.run(['xsel', '--clipboard', '--input'], input=line, text=True, check=True)
+                                except (FileNotFoundError, subprocess.CalledProcessError):
+                                    pass
+                    except Exception:
+                        pass
             
             # Пингование (не чаще чем раз в ping_interval, если не на паузе)
             if not dashboard.paused:
