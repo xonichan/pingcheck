@@ -29,7 +29,7 @@ python monitor.py --targets ./hosts.txt
 | `--targets`, `-t` | Путь к файлу со списком целей |
 | `--interval`, `-i` | Интервал между пингами (1-1000 секунд, по умолчанию: 1) |
 | `--logfile`, `-l` | Путь к файлу лога (например: `logs.txt`) |
-| `--only-down`, `-d` | Логировать только события DOWN |
+| `--only-down`, `-d` | Логировать только DOWN или UP с RTT > порога (по умолчанию: 100мс, можно задать значение: `-d 50`) |
 
 ### Управление
 
@@ -98,11 +98,14 @@ python monitor.py
 # Логирование событий
 python monitor.py -l logs.txt
 
-# Логирование только событий DOWN
+# Логирование только DOWN
 python monitor.py -l logs.txt -d
 
-# Логирование с интервалом 10 секунд
-python monitor.py --interval 10 --logfile logs.txt --only-down
+# Логирование DOWN и UP с RTT > 50мс
+python monitor.py -l logs.txt -d 50
+
+# Логирование с интервалом 10 секунд и порогом 200мс
+python monitor.py --interval 10 --logfile logs.txt --only-down 200
 
 # Логирование и запись выбранной строки
 python monitor.py --targets ./my-hosts.txt --logfile ping_log.txt
@@ -117,7 +120,7 @@ python monitor.py -t ./hosts.txt -i 30
 python monitor.py -t D:/project/Pingcheck/hosts.txt
 ```
 
-**Запись в лог:** В процессе работы нажмите `l` или `д` для сохранения информации о выбранной цели в лог-файл.
+
 
 ## Технические детали
 
@@ -126,7 +129,7 @@ python monitor.py -t D:/project/Pingcheck/hosts.txt
 - **Асинхронность**: asyncio + icmplib
 - **Ping**: icmplib (асинхронный ICMP-библиотека)
 - **Графика**: Unicode-полублоки для визуализации RTT
-- **Логирование**: Нажмите `l` или `д` для сохранения выбранной строки в лог
+- **Логирование**: Нажмите `l` или `д` для сохранения выбранной строки в лог. Параметр `--only-down` логирует DOWN и UP с RTT > порога (по умолчанию 100мс)
 
 ## Преимущества icmplib
 
