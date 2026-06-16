@@ -159,7 +159,7 @@ class Target:
         
         return " ".join(graph_chars) if graph_chars else " "
     
-    def log_event(self, status: Status, rtt: Optional[float] = None, error: str = None, logfile: str = None, only_down: int = None) -> None:
+    def log_event(self, status: Status, rtt: Optional[float] = None, error: str = None, logfile: str = None, only_down: int = None, is_manual: bool = False) -> None:
         """Записать событие в лог-файл."""
         if not logfile:
             return
@@ -178,6 +178,15 @@ class Target:
             log_line = f"[{timestamp}] {self.ip} UP RTT={rtt:.1f}ms\n"
         else:
             log_line = f"[{timestamp}] {self.ip} DOWN\n"
+        
+        # Если это автоматическая запись (превышение порога), добавляем полную информацию
+        if not is_manual and only_down is not None:
+            # Получаем полную информацию о цели
+            avg_rtt_display = self.get_avg_rtt_display()
+            all_time_display = self.get_all_time_stats()
+            loss_pct = self.loss_percentage
+            graph = self.get_rtt_graph()
+            log_line = f"[{timestamp}] {self.ip} | Status: {status.value.upper()} | RTT avg: {avg_rtt_display}ms | All-time: {all_time_display} | Loss: {loss_pct:.1f}% | Graph: {graph}\n"
         
         try:
             with open(logfile, "a", encoding="utf-8") as f:
