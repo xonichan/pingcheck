@@ -1,2 +1,0 @@
-# Gitverse: https://gitverse.ru/project/pingcheck
-# GitHub: https://github.com/xonichan/pingcheck
