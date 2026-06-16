@@ -19,6 +19,7 @@ import curses
 import json
 import os
 import sys
+from typing import Optional
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -234,7 +235,7 @@ class PingManager:
 class Dashboard:
     """TUI-интерфейс для отображения целей."""
     
-    def __init__(self, targets: List[Target], logfile: str = None, only_down: bool = False):
+    def __init__(self, targets: List[Target], logfile: str = None, only_down: int = None):
         self.targets = targets
         self.selected_index = 0
         self.start_time = time.time()
@@ -340,7 +341,7 @@ class Dashboard:
             color = self._get_color_for_target(target)
             self.stdscr.addstr(row, 0, line[:width-1].ljust(width-1), color)
     
-    def _draw_status(self, width: int, height: int, ping_interval: float) -> None:
+    def _draw_status(self, width: int, height: int, ping_interval: float, rtt_threshold: Optional[int] = None) -> None:
         """Нарисовать строку состояния."""
         try:
             elapsed = time.time() - self.start_time
@@ -354,6 +355,8 @@ class Dashboard:
             status_color = curses.color_pair(2) if self.paused else curses.color_pair(4)
             
             status_line = f"[{status_send}] | Targets: {targets_count} | Uptime: {uptime} | Updates/s: {update_rate:.1f} | Ping: {ping_interval}s"
+            if rtt_threshold is not None:
+                status_line += f" | RTT>{rtt_threshold}ms"
             status_line += " | q/й/Ctrl+X:quit | r/ц:reload | p/к:pause | ^↑/↓:navigate"
             
             self.stdscr.addstr(height - 1, 0, status_line[:width-1].ljust(width-1),
@@ -361,7 +364,7 @@ class Dashboard:
         except curses.error:
             pass
     
-    def draw(self, ping_interval: float) -> None:
+    def draw(self, ping_interval: float, rtt_threshold: Optional[int] = None) -> None:
         """Отрисовать весь дашборд."""
         try:
             height, width = self.stdscr.getmaxyx()
@@ -377,7 +380,7 @@ class Dashboard:
             
             self._draw_header(width)
             self._draw_targets(width, height)
-            self._draw_status(width, height, ping_interval)
+            self._draw_status(width, height, ping_interval, self.only_down)
             
             self.stdscr.refresh()
             self.last_update = time.time()
