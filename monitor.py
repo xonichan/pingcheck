@@ -163,18 +163,20 @@ class Target:
         if not logfile:
             return
         
-        # Если only_down=True и событие UP, не логируем
+        # Если only_down=True и событие UP, не логируем (кроме случаев с высоким RTT)
         if only_down and status == Status.UP:
-            return
+            # Логируем UP если RTT > 100мс
+            if rtt is None or rtt <= 100:
+                return
         
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
         
         if error:
-            log_line = f"{timestamp} {self.ip} ERROR: {error}\n"
+            log_line = f"[{timestamp}] {self.ip} ERROR: {error}\n"
         elif status == Status.UP:
-            log_line = f"{timestamp} {self.ip} UP RTT={rtt:.1f}ms\n"
+            log_line = f"[{timestamp}] {self.ip} UP RTT={rtt:.1f}ms\n"
         else:
-            log_line = f"{timestamp} {self.ip} DOWN\n"
+            log_line = f"[{timestamp}] {self.ip} DOWN\n"
         
         try:
             with open(logfile, "a", encoding="utf-8") as f:
