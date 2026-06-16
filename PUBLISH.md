@@ -23,12 +23,14 @@ chmod +x publish*.sh
 .\publish.ps1
 ```
 
+**Примечание:** Gitverse может требовать ручной публикации через веб-интерфейс из-за ограничений на push. Проверьте права доступа перед использованием скриптов.
+
 ## Настройка репозиториев
 
 Перед использованием скриптов убедитесь, что добавлены удаленные репозитории:
 
 ```bash
-git remote add gitverse https://gitverse.ru/project/pingcheck.git
+git remote add gitverse https://gitverse.ru/nicholasrogov/pingcheck.git
 git remote add github https://github.com/xonichan/pingcheck.git
 ```
 
@@ -36,3 +38,5 @@ git remote add github https://github.com/xonichan/pingcheck.git
 ```bash
 git remote -v
 ```
+
+**Примечание:** Gitverse требует авторизации и может иметь ограничения на push. Для публикации в Gitverse может потребоваться использовать веб-интерфейс или настроить SSH-ключи.
