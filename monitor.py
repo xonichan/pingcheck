@@ -331,7 +331,9 @@ class Dashboard:
             # ASCII-график RTT
             graph_text = target.get_rtt_graph()
             
-            line = f"{target.ip:<20} {status_text:<8} {avg_rtt_text:<14} {last_rtt_text:<14} {all_time_text:<14} {loss_text:<10} {graph_text:<25}"
+            # Добавляем стрелку для выбранной строки
+            marker = "→ " if i == self.selected_index else "  "
+            line = f"{marker}{target.ip:<20} {status_text:<8} {avg_rtt_text:<14} {last_rtt_text:<14} {all_time_text:<14} {loss_text:<10} {graph_text:<25}"
             
             color = self._get_color_for_target(target)
             self.stdscr.addstr(row, 0, line[:width-1].ljust(width-1), color)
