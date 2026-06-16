@@ -37,4 +37,4 @@
 
 ## Обновления безопасности
 
-Обновления безопасности будут发布 в release notes и GitHub security advisories.
+Обновления безопасности будут в release notes и GitHub security advisories.
