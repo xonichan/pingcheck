@@ -15,6 +15,7 @@ Ping Monitor - инструмент мониторинга доступност�
 """
 import argparse
 import asyncio
+import curses
 import json
 import os
 import sys
@@ -187,7 +188,6 @@ class PingManager:
     
     def __init__(self, targets: List[Target]):
         self.targets = targets
-        self._ping_process = None
     
     async def ping_target(self, target: Target, logfile: str = None, only_down: bool = False) -> None:
         """Выполнить пинг одной цели."""
@@ -263,34 +263,34 @@ class Dashboard:
                 print(f"Ошибка открытия лог-файла: {e}")
         
         # Инициализация цветов
-        if __import__("curses").has_colors():
-            __import__("curses").init_pair(1, __import__("curses").COLOR_GREEN, -1)   # Green
-            __import__("curses").init_pair(2, __import__("curses").COLOR_YELLOW, -1)  # Yellow
-            __import__("curses").init_pair(3, __import__("curses").COLOR_RED, -1)     # Red
-            __import__("curses").init_pair(4, __import__("curses").COLOR_CYAN, -1)    # Header
-            __import__("curses").init_pair(5, __import__("curses").COLOR_WHITE, -1)   # Normal
+        if curses.has_colors():
+            curses.init_pair(1, curses.COLOR_GREEN, -1)   # Green
+            curses.init_pair(2, curses.COLOR_YELLOW, -1)  # Yellow
+            curses.init_pair(3, curses.COLOR_RED, -1)     # Red
+            curses.init_pair(4, curses.COLOR_CYAN, -1)    # Header
+            curses.init_pair(5, curses.COLOR_WHITE, -1)   # Normal
     
     def _get_color_for_target(self, target: Target) -> int:
         """Определить цвет для цели на основе RTT и потерь."""
         if target.status == Status.DOWN:
-            return __import__("curses").color_pair(3)  # Red
+            return curses.color_pair(3)  # Red
         
         rtt = target.avg_rtt or 0
         loss = target.loss_percentage
         
         if loss > 50 or rtt >= 500:
-            return __import__("curses").color_pair(3)  # Red
+            return curses.color_pair(3)  # Red
         elif loss > 20 or rtt >= 100:
-            return __import__("curses").color_pair(2)  # Yellow
+            return curses.color_pair(2)  # Yellow
         else:
-            return __import__("curses").color_pair(1)  # Green
+            return curses.color_pair(1)  # Green
     
     def _resize(self) -> None:
         """Обработать ресайз терминала."""
-        __import__("curses").endwin()
-        __import__("curses").refresh()
-        self.stdscr = __import__("curses").initscr()
-        __import__("curses").resizeterm(*__import__("curses").stdscr().getmaxyx())
+        curses.endwin()
+        curses.refresh()
+        self.stdscr = curses.initscr()
+        curses.resizeterm(*curses.stdscr().getmaxyx())
     
     def _draw_header(self, width: int) -> None:
         """Нарисовать заголовок таблицы."""
@@ -298,8 +298,8 @@ class Dashboard:
             # Три столбца RTT: средний, последний и статистика за всё время + график
             header = f"{'IP Address':<20} {'Status':<8} {'RTT avg (ms)':<14} {'RTT last (ms)':<14} {'All-time':<14} {'Loss %':<10} {'Graph':<25}"
             self.stdscr.addstr(1, 0, header[:width-1].ljust(width-1), 
-                             __import__("curses").color_pair(4) | __import__("curses").A_BOLD)
-        except __import__("curses").error:
+                             curses.color_pair(4) | curses.A_BOLD)
+        except curses.error:
             pass
     
     def _draw_targets(self, width: int, height: int) -> None:
@@ -351,14 +351,14 @@ class Dashboard:
             
             # Статус отправки
             status_send = "PAUSED" if self.paused else "SENDING"
-            status_color = __import__("curses").color_pair(2) if self.paused else __import__("curses").color_pair(4)
+            status_color = curses.color_pair(2) if self.paused else curses.color_pair(4)
             
             status_line = f"[{status_send}] | Targets: {targets_count} | Uptime: {uptime} | Updates/s: {update_rate:.1f} | Ping: {ping_interval}s"
             status_line += " | q/й/Ctrl+X:quit | r/ц:reload | p/к:pause | ^↑/↓:navigate"
             
             self.stdscr.addstr(height - 1, 0, status_line[:width-1].ljust(width-1),
                              status_color)
-        except __import__("curses").error:
+        except curses.error:
             pass
     
     def draw(self, ping_interval: float) -> None:
@@ -369,7 +369,7 @@ class Dashboard:
             # Обработка ресайза
             if height < 10 or width < 80:
                 self.stdscr.clear()
-                self.stdscr.addstr(0, 0, "Terminal too small", __import__("curses").A_BOLD)
+                self.stdscr.addstr(0, 0, "Terminal too small", curses.A_BOLD)
                 self.stdscr.refresh()
                 return
             
@@ -384,13 +384,13 @@ class Dashboard:
             if not self.paused:
                 self.update_count += 1
             
-        except __import__("curses").error:
+        except curses.error:
             pass
     
     def cleanup(self) -> None:
         """Восстановить терминал."""
         try:
-            __import__("curses").endwin()
+            curses.endwin()
             # Закрыть лог-файл
             if self.log_file_handle:
                 self.log_file_handle.close()
@@ -450,13 +450,13 @@ async def main_loop(dashboard: Dashboard, ping_manager: PingManager,
                 
             elif key in (ord('p'), ord('к'), ord('P'), ord('К')):  # p, к, P, К
                 dashboard.paused = not dashboard.paused
-            elif key == __import__("curses").KEY_UP:  # Вверх (стрелка)
+            elif key == curses.KEY_UP:  # Вверх (стрелка)
                 if targets_list and dashboard.selected_index > 0:
                     dashboard.selected_index -= 1
-            elif key == __import__("curses").KEY_DOWN:  # Вниз (стрелка)
+            elif key == curses.KEY_DOWN:  # Вниз (стрелка)
                 if targets_list and dashboard.selected_index < len(targets_list) - 1:
                     dashboard.selected_index += 1
-            elif key == __import__("curses").KEY_RESIZE:
+            elif key == curses.KEY_RESIZE:
                 dashboard._resize()
             
             # Пингование (не чаще чем раз в ping_interval, если не на паузе)
@@ -474,8 +474,6 @@ async def main_loop(dashboard: Dashboard, ping_manager: PingManager,
             
         except asyncio.CancelledError:
             break
-        except Exception:
-            pass
 
 
 def main() -> None:
