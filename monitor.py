@@ -461,7 +461,7 @@ async def main_loop(dashboard: Dashboard, ping_manager: PingManager,
                 if targets_list and dashboard.selected_index >= 0 and dashboard.logfile:
                     selected_target = targets_list[dashboard.selected_index]
                     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                    log_entry = f"[{timestamp}] {selected_target.ip} | Status: {selected_target.status.value.upper()} | RTT avg: {selected_target.get_avg_rtt_display()}ms | Loss: {selected_target.loss_percentage:.1f}% | Graph: {selected_target.get_rtt_graph()}\n"
+                    log_entry = f"[{timestamp}] {selected_target.ip} | Status: {selected_target.status.value.upper()} | RTT avg: {selected_target.get_avg_rtt_display()}ms | All-time: {selected_target.get_all_time_stats()} | Loss: {selected_target.loss_percentage:.1f}% | Graph: {selected_target.get_rtt_graph()}\n"
                     try:
                         with open(dashboard.logfile, "a", encoding="utf-8") as f:
                             f.write(log_entry)
