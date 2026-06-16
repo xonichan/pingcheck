@@ -291,9 +291,9 @@ class Dashboard:
     def _resize(self) -> None:
         """Обработать ресайз терминала."""
         curses.endwin()
-        curses.refresh()
-        self.stdscr = curses.initscr()
+        curses.initscr()
         curses.resizeterm(*curses.stdscr().getmaxyx())
+        self.stdscr = curses.initscr()
     
     def _draw_header(self, width: int) -> None:
         """Нарисовать заголовок таблицы."""
