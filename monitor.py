@@ -456,7 +456,7 @@ async def main_loop(dashboard: Dashboard, ping_manager: PingManager,
                     dashboard.selected_index += 1
             elif key == curses.KEY_RESIZE:
                 dashboard._resize()
-            elif key == 13:  # Enter key
+            elif key in (ord('l'), ord('д'), ord('L'), ord('Д')):  # l, д, L, Д - записать в лог
                 # Записать выбранную строку в лог
                 if targets_list and dashboard.selected_index >= 0 and dashboard.logfile:
                     selected_target = targets_list[dashboard.selected_index]
