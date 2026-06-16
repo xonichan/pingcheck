@@ -158,15 +158,15 @@ class Target:
         
         return " ".join(graph_chars) if graph_chars else " "
     
-    def log_event(self, status: Status, rtt: Optional[float] = None, error: str = None, logfile: str = None, only_down: bool = False) -> None:
+    def log_event(self, status: Status, rtt: Optional[float] = None, error: str = None, logfile: str = None, only_down: int = None) -> None:
         """Записать событие в лог-файл."""
         if not logfile:
             return
         
-        # Если only_down=True и событие UP, не логируем (кроме случаев с высоким RTT)
-        if only_down and status == Status.UP:
-            # Логируем UP если RTT > 100мс
-            if rtt is None or rtt <= 100:
+        # Если only_down установлен и событие UP, не логируем (кроме случаев с высоким RTT)
+        if only_down is not None and status == Status.UP:
+            # Логируем UP если RTT > порога (по умолчанию 100мс)
+            if rtt is None or rtt <= only_down:
                 return
         
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -474,7 +474,7 @@ async def main_loop(dashboard: Dashboard, ping_manager: PingManager,
             if not dashboard.paused:
                 current_time = time.time()
                 if current_time - last_ping_time >= ping_interval:
-                    await ping_manager.ping_all(logfile, only_down)
+                    await ping_manager.ping_all(logfile, dashboard.only_down)
                     last_ping_time = current_time
             
             # Рисуем дашборд
@@ -512,8 +512,12 @@ def main() -> None:
     )
     parser.add_argument(
         "--only-down", "-d",
-        action="store_true",
-        help="Логировать только события DOWN (без RTT)"
+        type=int,
+        nargs="?",
+        const=100,
+        default=None,
+        metavar="[0-1000]",
+        help="Логировать только DOWN или UP с RTT > порога (по умолчанию: 100мс). Без значения: выключено"
     )
     
     args = parser.parse_args()
