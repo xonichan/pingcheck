@@ -334,11 +334,7 @@ class Dashboard:
             line = f"{target.ip:<20} {status_text:<8} {avg_rtt_text:<14} {last_rtt_text:<14} {all_time_text:<14} {loss_text:<10} {graph_text:<25}"
             
             color = self._get_color_for_target(target)
-            if i == self.selected_index:
-                self.stdscr.addstr(row, 0, line[:width-1].ljust(width-1),
-                                 color | __import__("curses").A_REVERSE)
-            else:
-                self.stdscr.addstr(row, 0, line[:width-1].ljust(width-1), color)
+            self.stdscr.addstr(row, 0, line[:width-1].ljust(width-1), color)
     
     def _draw_status(self, width: int, height: int, ping_interval: float) -> None:
         """Нарисовать строку состояния."""
