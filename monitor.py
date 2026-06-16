@@ -457,10 +457,11 @@ async def main_loop(dashboard: Dashboard, ping_manager: PingManager,
             elif key == curses.KEY_RESIZE:
                 dashboard._resize()
             elif key in (ord('l'), ord('д'), ord('L'), ord('Д')):  # l, д, L, Д - записать в лог
-                # Записать выбранную строку в лог
+                # Записать выбранную строку в лог с временной меткой
                 if targets_list and dashboard.selected_index >= 0 and dashboard.logfile:
                     selected_target = targets_list[dashboard.selected_index]
-                    log_entry = f"{selected_target.ip} | Status: {selected_target.status.value.upper()} | RTT avg: {selected_target.get_avg_rtt_display()}ms | Loss: {selected_target.loss_percentage:.1f}% | Graph: {selected_target.get_rtt_graph()}\n"
+                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                    log_entry = f"[{timestamp}] {selected_target.ip} | Status: {selected_target.status.value.upper()} | RTT avg: {selected_target.get_avg_rtt_display()}ms | Loss: {selected_target.loss_percentage:.1f}% | Graph: {selected_target.get_rtt_graph()}\n"
                     try:
                         with open(dashboard.logfile, "a", encoding="utf-8") as f:
                             f.write(log_entry)
