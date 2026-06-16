@@ -124,39 +124,39 @@ class Target:
     def get_rtt_graph(self) -> str:
         """Построить ASCII-график последних RTT."""
         if not self.rtt_history:
-            return "?"
+            return " "  # Пробел = нет данных
         
         values = self.rtt_history[-10:]  # Берём последние 10
         max_val = max(values) if values else 1
         
-        # Символы по степени тревожности
-        # ? – нет данных / ошибка
-        # ✓ – отлично (<20%)
-        # ∘ – хорошо (20–50%)
-        # ◌ – терпимо (50–70%)
-        # ⚠ – высоко (70–90%)
-        # ❗ – очень высоко (90–95%)
-        # ✖ – критический (>95%)
+        # Unicode-полублоки по степени RTT
+        #  (пробел) – 0% (нет данных или таймаут)
+        # ▏ – очень низкий RTT (<10% от максимума)
+        # ▎ – низкий RTT (10–30%)
+        # ▍ – средний RTT (30–50%)
+        # ▌ – высокий RTT (50–70%)
+        # ▋ – очень высокий RTT (70–90%)
+        # █ – критический (>90%)
         graph_chars = []
         for val in values:
             if val <= 0:
-                graph_chars.append("?")
+                graph_chars.append(" ")
             else:
                 ratio = val / max_val
-                if ratio < 0.2:
-                    graph_chars.append("✓")
+                if ratio < 0.1:
+                    graph_chars.append("▏")
+                elif ratio < 0.3:
+                    graph_chars.append("▎")
                 elif ratio < 0.5:
-                    graph_chars.append("∘")
+                    graph_chars.append("▍")
                 elif ratio < 0.7:
-                    graph_chars.append("◌")
+                    graph_chars.append("▌")
                 elif ratio < 0.9:
-                    graph_chars.append("⚠")
-                elif ratio < 0.95:
-                    graph_chars.append("❗")
+                    graph_chars.append("▋")
                 else:
-                    graph_chars.append("✖")
+                    graph_chars.append("█")
         
-        return " ".join(graph_chars) if graph_chars else "?"
+        return " ".join(graph_chars) if graph_chars else " "
     
     def log_event(self, status: Status, rtt: Optional[float] = None, error: str = None, logfile: str = None, only_down: bool = False) -> None:
         """Записать событие в лог-файл."""
